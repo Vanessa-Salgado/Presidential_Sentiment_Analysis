@@ -1,6 +1,7 @@
-'''
-Purpose: tweets scraper to scrape tweets of a specific user or hashtag
-'''
+"""
+Purpose: Rewriting tweets-scrapper.py with the correct Class structure.
+"""
+
 from selenium import webdriver
 import os
 import time
@@ -15,17 +16,31 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+# --- Global variables ---
+# enter your username and password 
+# username = **********
+# password = **********
+
+
 class tweets_scraper:
     
+    # --- Global variables ---
+    user_tags = []
+    time_stamps = []
+    tweets = []
+    replies =[]
+    retweets = []
+    likes = [] 
+
     
-    # Constructor
-    def __init__(self, username, password, subject, isHashtag):
+    # -- Constructor ---
+    def __init__(self, subject, isHashtag):
         
-        self.username = username
-        self.password = password
         self.subject = subject
         self.isHashtag = isHashtag
-
+        
+        
+        '''
         option = webdriver.ChromeOptions()
         
         option.add_experimental_option("detach", True)
@@ -35,6 +50,7 @@ class tweets_scraper:
         self.by = By
         self.ec = EC
         self.webDriverWait = WebDriverWait
+        '''
 
         time.sleep(1)
         self.login()
@@ -45,16 +61,29 @@ class tweets_scraper:
         time.sleep(10)
         self.collect_tweets()
         
+     # --- Open chrome driver connection ---
+     def open_chromedriver_connection(self):
+        option = webdriver.ChromeOptions()
+        
+        option.add_experimental_option("detach", True)
+        option.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        self.driver = webdriver.Chrome(options = option )
+
+        self.by = By
+        self.ec = EC
+        self.webDriverWait = WebDriverWait
+        
+        
 
     # --- Set-Up Login ---   
-    def login(self):
+    def login(self, username, password):
         self.driver.get('https://x.com/i/flow/login')
        
         # Wait for the page to load and locate the username input fields
         self.webDriverWait(self.driver, 20).until(self.ec.presence_of_element_located((self.by.XPATH, "//input[@name='text']")))
         
         # Send keys to the input fields
-        self.driver.find_element(self.by.XPATH,  "//input[@name='text']").send_keys(self.username)
+        self.driver.find_element(self.by.XPATH,  "//input[@name='text']").send_keys(username)
         
         # Locate the next button and click 
         self.webDriverWait(self.driver, 10).until(self.ec.element_to_be_clickable((self.by.XPATH, "//span[contains(text(), 'Next')]")))
@@ -64,7 +93,7 @@ class tweets_scraper:
         # Wait for the page to laod and locate the password input fields
         self.webDriverWait(self.driver, 10).until(self.ec.presence_of_element_located((self.by.XPATH, "//input[@name='password']")))
         #self.webDriverWait(self.driver, 10).until(self.ec.presence_of_element_located((self.by.NAME, 'password')))
-        self.driver.find_element(self.by.NAME, 'password').send_keys(self.password)
+        self.driver.find_element(self.by.NAME, 'password').send_keys(password)
         
         # Locate login button 
         #sleep(2)
@@ -76,29 +105,22 @@ class tweets_scraper:
         # wait and find search box 
         #self.webDriverWait(self.driver,20).until(self.ec.presence_of_element_located((self.by.XPATH,"//input[@data-testid='SearchBox_Search_Input']")))
         
+        # TO DO: look up the hastag  
         # if we search a hastag type, search it in the search box 
         if(self.isHashtag == True): 
             self.driver.find_element(self.by.CSS_SELECTOR, 'input[name="text"]').send_keys(self.subject)
             self.driver.find_element(self.by.CSS_SELECTOR, 'input[name="text"]').send_keys(Keys.RETURN)
-        # else if it a user, go directly to the subjects profile
+        
+        # else if subject is a user, go directly to the subjects profile
         else:
             self.driver.get('https://x.com/' + self.subject)
-        
-        #look up the hastag  
-          
-    # --- Collect tweets with 2 cases: (1) a users profile tweets or (2) a hashtag
+    
     def collect_tweets(self):
-        
-        user_tags = []
-        time_stamps = []
-        tweets = []
-        replies =[]
-        retweets = []
-        likes = []  
         
         # find elements of the tweet
         articles = self.driver.finde_element(self.by.XPATH, "//article[@data-testid = 'tweet']")
         
+        # Automate the Process 
         while(True):
             for articles in articles:
                 # grabs retweets and tweet replies , need to find a way to distinguish
@@ -135,35 +157,55 @@ class tweets_scraper:
             if len(tweets_update) > 5 :
                 break
     
-    # TO DO: function that distinguies tweet, repost, reply tweet,         
+    # TO DO: function that distinguies tweet, repost, reply type      
     # def label_text_type(self):
             
-    # --- Generates a csv file ---      
+    # create csv of tweets colleted          
     def export_to_csv(self):
         
         # create dataframe
-        tweets_dataframe = pd.DataFrame(zip(user_tags, timestamps, tweets, replies, retweets, likes ),
+        tweets_dataframe = pd.DataFrame(zip(user_tags, time_stamps, tweets, replies, retweets, likes ),
                      columns = ['user_name', 'timestamp', 'tweet_text', 'replies_count', 'retweet_count', 'like_count'])
         
         # export as csv
+        # eventual path for data folder
         # os.makedirs('Users/vanessa/Documents/dev_projects/github_projects/Presidential_Sentiment_Analysis/', exist_ok=True) 
         
+        # export as csv
         tweets_dataframe.to_csv('Users/vanessa/Documents/dev_projects/sentiment_data_folder/tweets_data.csv', index=False)  
 
+
 '''
-Eventually
-want to feed in  password, username, array of hastags to be interatively go trough and find the top tweets,
-array of users to find the tweets of the user
+TO DO: 
+Want to feed in  password, username, array of hastags | array of user @  to interatively go through and find the tweets
 Ideally we do not want to manually change the function arguments 
 
 OUTPUT: 
 excel sheet
-1. user tweets
-2. 
+1. user tweets csv
+2. hastag tweets csv
 '''
-tweets = tweets_scraper( username="", password="", subject="realDonaldTrump", isHashtag = False)
+# To Use Scraper, 
+# Create a scraper object and build the the csv of data collected
+# i.e.
+
+# scraper object for a list of hastags
+hashtags_tweets= tweets_scraper(subject=['#election', '#debate'], isHashtag = True)
+
+# scraper object for a list of a users' @
+users_tweets = tweets_scraper(subject=['realDonaldTrump', 'KamalaHarris'], isHashtag = False)
+
+# example of how to use script
+# script_done = False
+# while not script_done:
+#     
+#     hashtags_tweets.login()
+#     time.sleep(10)
+#     hashtags_tweets.search_subject()
+#     time.sleep(10)  
+#     hashtag_tweets.collect_tweets()
+#     time.sleep(10)
+#     script_done = True
 
 
-# Notes: 
-# XPATH for tweets that were replied to : //div[@data-testid='tweetText' and ancestor::div[@role='link']]
-# XPATH 
+
