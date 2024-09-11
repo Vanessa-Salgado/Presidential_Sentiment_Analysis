@@ -24,6 +24,13 @@ class tweets_scraper:
         self.password = password
         self.subject = subject
         self.isHashtag = isHashtag
+        
+        self.user_tags = []
+        self.time_stamps = []
+        self.tweets = []
+        self.replies = []
+        self.retweets = []
+        self.likes = []
          
 
         option = webdriver.ChromeOptions()
@@ -111,12 +118,6 @@ class tweets_scraper:
     
     # --- Collect tweets from users profile ---
     def collect_tweets(self):
-        user_tags = []
-        time_stamps = []
-        tweets = []
-        replies =[]
-        retweets = []
-        likes = [] 
         
         # find elements of the tweet
         # (//article[@role='article'])[3]
@@ -128,13 +129,13 @@ class tweets_scraper:
                 # grabs retweets and tweet replies , need to find a way to distinguish
                 # authors own tweets, retewets, replie type 
                 user_tag = self.driver.find_element(self.by.XPATH, ".//div[@data-testid = 'User-Name']").text
-                user_tags.append(user_tag)
+                self.user_tags.append(user_tag)
 
                 # collect timestamp 
                 timestamp = self.driver.find_element(self.by.XPATH, ".//time[@datetime]").get_attribute('datetime')
                 # or 
                 #timestampe = sefl.driver.find_element(self.by.TAG_NAME, "time").get_attribute('datetime')
-                time_stamps.append(timestamp)
+                self.time_stamps.append(timestamp)
 
                 # collect tweet text
                 tweet_text = self.driver.find_element(self.by.XPATH, ".//div[@data-testid = 'tweetText']").text
@@ -142,15 +143,15 @@ class tweets_scraper:
 
                 # collect replies_count
                 replies_count = self.driver.find_element(self.by.XPATH, ".//div[@data-testid = 'reply']").text
-                replies.apppend(replies_count)
+                self.replies.apppend(replies_count)
 
                 # collect retweet_count
                 retweet_count = self.driver.find_element(self.by.XPATH, ".//div[@data-testid = 'retweet']").text
-                retweets.append(retweet_count)
+                self.retweets.append(retweet_count)
 
                 # collect like_count
                 like_count = self.driver.find_element(self.by.XPATH, ".//div[@data-testid = 'like']").text
-                likes.append(like_count)
+                self.likes.append(like_count)
 
 
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -168,10 +169,15 @@ class tweets_scraper:
             
     # --- Generates a csv file ---      
     def export_to_csv(self):
-        
         # create dataframe
-        tweets_dataframe = pd.DataFrame(zip(user_tags, time_stamps, tweets, replies, retweets, likes ),
-                     columns = ['user_name', 'timestamp', 'tweet_text', 'replies_count', 'retweet_count', 'like_count'])
+        tweets_dataframe = pd.DataFrame({
+            'user_name': self.user_tags,
+            'timestamp': self.time_stamps,
+            'tweet_text': self.tweets,
+            'replies_count': self.replies,
+            'retweet_count': self.retweets,
+            'like_count': self.likes
+        })
         
         # export as csv
         # os.makedirs('Users/vanessa/Documents/dev_projects/github_projects/Presidential_Sentiment_Analysis/', exist_ok=True) 
