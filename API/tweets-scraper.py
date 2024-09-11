@@ -1,11 +1,10 @@
-'''
+"""
 Purpose: tweets scraper to scrape tweets of a specific user or hashtag
-'''
+"""
+
 from selenium import webdriver
-import os
 import time
-import datetime
-import csv
+
 
 import pandas as pd
 
@@ -25,10 +24,13 @@ class tweets_scraper:
         self.password = password
         self.subject = subject
         self.isHashtag = isHashtag
+         
 
         option = webdriver.ChromeOptions()
         
         option.add_experimental_option("detach", True)
+        # option.add_argument("--headless=new") # testing purposes
+        option.add_argument("--incognito") # avoiding tracking 
         option.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
         self.driver = webdriver.Chrome(options = option )
 
@@ -36,68 +38,90 @@ class tweets_scraper:
         self.ec = EC
         self.webDriverWait = WebDriverWait
 
-        time.sleep(1)
+        # time.sleep(1)
+        
         self.login()
         
-        time.sleep(2)
+        # time.sleep(1)
         self.search_subject()
         
         time.sleep(10)
         self.collect_tweets()
         
 
-    # --- Set-Up Login ---   
+    # --- Set-Up Login ---  WORKING
     def login(self):
-        self.driver.get('https://x.com/i/flow/login')
-       
+        self.driver.get('https://x.com')
+        print("twitter page opened ")
+        self.driver.fullscreen_window()
+        
+        # wait for the page to load and locate the sign in button
+        try:
+            self.webDriverWait(self.driver, 20).until(self.ec.visibility_of_element_located((self.by.XPATH, "//span[contains(text(),'Sign in')][1]"))).click()
+            print("sign in button located")
+        except: 
+            print("Exception occurred")
+            
+        
         # Wait for the page to load and locate the username input fields
-        self.webDriverWait(self.driver, 20).until(self.ec.presence_of_element_located((self.by.XPATH, "//input[@name='text']")))
+        self.webDriverWait(self.driver, 10).until(self.ec.visibility_of_element_located((self.by.XPATH, "//div[@class='css-175oi2r r-18u37iz r-1pi2tsx r-1wtj0ep r-u8s1d r-13qz1uu']")))
+        print("username field visible")
         
         # Send keys to the input fields
         self.driver.find_element(self.by.XPATH,  "//input[@name='text']").send_keys(self.username)
+        print("username inputted")
         
         # Locate the next button and click 
         self.webDriverWait(self.driver, 10).until(self.ec.element_to_be_clickable((self.by.XPATH, "//span[contains(text(), 'Next')]")))
+        print("Next button found")
         self.driver.find_element(self.by.XPATH, "//span[contains(text(), 'Next')]").click()
-        time.sleep(5)
+        print("Next button clicked")
         
         # Wait for the page to laod and locate the password input fields
-        self.webDriverWait(self.driver, 10).until(self.ec.presence_of_element_located((self.by.XPATH, "//input[@name='password']")))
-        #self.webDriverWait(self.driver, 10).until(self.ec.presence_of_element_located((self.by.NAME, 'password')))
+        #self.by.XPATH, "//input[@name='password']")))
+        self.webDriverWait(self.driver, 10).until(self.ec.visibility_of_element_located((self.by.NAME, 'password')))
+        print("password field visible ")
         self.driver.find_element(self.by.NAME, 'password').send_keys(self.password)
+        print("password inputted")
         
         # Locate login button 
-        #sleep(2)
-        self.webDriverWait(self.driver, 5).until(self.ec.element_to_be_clickable((self.by.XPATH, "//span[contains(text(), 'Log in')]")))
-        self.driver.find_element(self.by.XPATH, "//span[contains(text(), 'Log in')]").click()
+        self.webDriverWait(self.driver, 20).until(self.ec.visibility_of_element_located((self.by.XPATH, "//button[@class='css-175oi2r r-sdzlij r-1phboty r-rs99b7 r-lrvibr r-19yznuf r-64el8z r-1fkl15p r-1loqt21 r-o7ynqc r-6416eg r-jc7xae r-1ny4l3l']"))).click()
         
-    # --- Search for a designated user or hashtag and fetch ---   
+    # --- Search for a user or hashtag and fetch ---   
     def search_subject(self):
         # wait and find search box 
-        #self.webDriverWait(self.driver,20).until(self.ec.presence_of_element_located((self.by.XPATH,"//input[@data-testid='SearchBox_Search_Input']")))
+        self.webDriverWait(self.driver,20).until(self.ec.presence_of_element_located((self.by.XPATH,"//input[@data-testid='SearchBox_Search_Input']")))
         
         # if we search a hastag type, search it in the search box 
         if(self.isHashtag == True): 
+            # search hashtag
             self.driver.find_element(self.by.CSS_SELECTOR, 'input[name="text"]').send_keys(self.subject)
+            # press the enter key 
             self.driver.find_element(self.by.CSS_SELECTOR, 'input[name="text"]').send_keys(Keys.RETURN)
+            return 
         # else if it a user, go directly to the subjects profile
         else:
             self.driver.get('https://x.com/' + self.subject)
         
         #look up the hastag  
-          
-    # --- Collect tweets with 2 cases: (1) a users profile tweets or (2) a hashtag
-    def collect_tweets(self):
+    
+    # def collect_hashtag_tweets(self):
+    #     print("inside collect_hashtag_tweets()")
         
+    
+    # --- Collect tweets from users profile ---
+    def collect_tweets(self):
         user_tags = []
         time_stamps = []
         tweets = []
         replies =[]
         retweets = []
-        likes = []  
+        likes = [] 
         
         # find elements of the tweet
-        articles = self.driver.finde_element(self.by.XPATH, "//article[@data-testid = 'tweet']")
+        # (//article[@role='article'])[3]
+        #(//article[@role='article'])[1]
+        articles = self.driver.find_elements(self.by.XPATH, "//article[@data-testid = 'tweet']")
         
         while(True):
             for articles in articles:
@@ -130,10 +154,14 @@ class tweets_scraper:
 
 
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            articles = self.driver.finde_element(self.by.XPATH, "//article[@data-testid = 'tweet']")
+            articles = self.driver.find_element(self.by.XPATH, "//article[@data-testid = 'tweet']")
             tweets_update = list(set(tweets))
+            # break at August 2 
             if len(tweets_update) > 5 :
-                break
+                return user_tags, time_stamps
+    
+    
+    
     
     # TO DO: function that distinguies tweet, repost, reply tweet,         
     # def label_text_type(self):
@@ -142,7 +170,7 @@ class tweets_scraper:
     def export_to_csv(self):
         
         # create dataframe
-        tweets_dataframe = pd.DataFrame(zip(user_tags, timestamps, tweets, replies, retweets, likes ),
+        tweets_dataframe = pd.DataFrame(zip(user_tags, time_stamps, tweets, replies, retweets, likes ),
                      columns = ['user_name', 'timestamp', 'tweet_text', 'replies_count', 'retweet_count', 'like_count'])
         
         # export as csv
@@ -161,7 +189,7 @@ excel sheet
 1. user tweets
 2. 
 '''
-tweets = tweets_scraper( username="", password="", subject="realDonaldTrump", isHashtag = False)
+tweets_scraper( username="vactivez", password="2570cflmmo", subject="realDonaldTrump", isHashtag = False)
 
 
 # Notes: 
