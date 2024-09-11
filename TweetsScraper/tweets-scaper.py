@@ -188,7 +188,7 @@ class tweets_scraper:
 Eventually
 want to feed in  password, username, array of hastags to be interatively go trough and find the top tweets,
 array of users to find the tweets of the user
-Ideally we do not want to manually change the function arguments 
+Ideally we do not want to manually change the function argument
 
 OUTPUT: 
 excel sheet
